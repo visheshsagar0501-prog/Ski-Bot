@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Ski Bot — AI Skin & Eye Screening</title>
+<style>
+:root{--blue:#2563eb;--blue-dk:#1d4ed8;--teal:#0d9488;--teal-lt:#14b8a6;--ink:#0f172a;--gray:#64748b;--gray-lt:#94a3b8;--border:#e2e8f0;--bg-soft:#f8fafc;--r-lg:20px;--r-md:14px;--shadow:0 4px 24px rgba(15,23,42,.06);--shadow-lg:0 14px 40px rgba(15,23,42,.10)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:#fff;line-height:1.55}
+a{text-decoration:none;color:inherit}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+.container{max-width:1120px;margin:0 auto;padding:0 24px}
+
+nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;max-width:1120px;margin:0 auto}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px}
+.logo-mark{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--blue),var(--teal-lt))}
+.logo .accent{color:var(--teal)}
+.nav-links{display:flex;gap:30px;font-size:14.5px;font-weight:500;color:var(--gray)}
+.nav-links a:hover{color:var(--ink)}
+.nav-cta{background:var(--blue);color:#fff;padding:10px 20px;border-radius:999px;font-weight:600;font-size:14px;box-shadow:var(--shadow)}
+@media(max-width:820px){.nav-links{display:none}}
+
+.hero{text-align:center;padding:76px 20px 60px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-120px;left:50%;transform:translateX(-50%);width:600px;height:400px;background:radial-gradient(ellipse,rgba(37,99,235,.08),rgba(20,184,166,.05) 60%,transparent 75%);pointer-events:none}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;background:#eff6ff;color:var(--blue);font-size:13px;font-weight:600;padding:7px 16px;border-radius:999px;margin-bottom:22px;position:relative}
+.eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--teal-lt)}
+.hero h1{font-size:46px;font-weight:800;letter-spacing:-.02em;line-height:1.12;margin-bottom:18px;position:relative}
+.hero h1 .grad{background:linear-gradient(90deg,var(--blue),var(--teal-lt));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{font-size:16.5px;color:var(--gray);max-width:520px;margin:0 auto 32px;position:relative}
+.hero-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;position:relative}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:14px 26px;border-radius:999px;font-weight:600;font-size:15px;transition:transform .15s,box-shadow .15s}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--teal-lt);color:#fff;box-shadow:0 6px 20px rgba(20,184,166,.35)}
+.btn-outline{background:#fff;color:var(--ink);border:1px solid var(--border);box-shadow:var(--shadow)}
+@media(max-width:600px){.hero h1{font-size:34px}}
+
+.section{padding:70px 20px}
+.section-inner{max-width:760px;margin:0 auto}
+.section-label{font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--teal);text-transform:uppercase;text-align:center;margin-bottom:12px}
+.section-title{font-size:28px;font-weight:800;text-align:center;margin-bottom:14px;letter-spacing:-.01em}
+.section-sub{font-size:15px;color:var(--gray);text-align:center;max-width:480px;margin:0 auto 44px}
+
+.tool-card{max-width:680px;margin:0 auto;background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);overflow:hidden}
+.tool-header{background:linear-gradient(90deg,var(--blue),var(--teal-lt));padding:26px 30px;color:#fff}
+.tool-header h2{font-size:20px;font-weight:700;margin-bottom:4px}
+.tool-header p{font-size:13.5px;opacity:.92}
+.tool-body{padding:30px}
+
+.module-toggle{display:flex;background:var(--bg-soft);border:1px solid var(--border);border-radius:999px;padding:4px;margin-bottom:28px;width:fit-content;margin-left:auto;margin-right:auto}
+.tbtn{padding:9px 24px;border-radius:999px;font-size:13.5px;font-weight:700;color:var(--gray);transition:all .2s}
+.tbtn.active{background:var(--blue);color:#fff;box-shadow:0 4px 14px rgba(37,99,235,.3)}
+
+.field-label{font-size:12.5px;font-weight:700;letter-spacing:.06em;color:var(--gray);text-transform:uppercase;margin-bottom:12px;display:block}
+.block{margin-bottom:26px}
+
+.voice-row{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.mic-btn{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--teal-lt));color:#fff;font-size:19px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 6px 18px rgba(13,148,136,.3);position:relative;transition:transform .15s}
+.mic-btn:active{transform:scale(.94)}
+.mic-btn.rec{background:linear-gradient(135deg,#dc2626,#f87171)}
+.mic-pulse{position:absolute;inset:-6px;border-radius:50%;border:2px solid var(--teal-lt);opacity:0}
+.mic-btn.rec .mic-pulse{animation:pulse 1.3s ease-out infinite}
+@keyframes pulse{0%{opacity:.6;transform:scale(.9)}100%{opacity:0;transform:scale(1.5)}}
+.mic-status{font-size:13.5px;color:var(--gray)}
+.mic-status.live{color:#dc2626;font-weight:600}
+textarea{width:100%;min-height:80px;border:1px solid var(--border);border-radius:var(--r-md);padding:13px 15px;font-size:14px;font-family:inherit;color:var(--ink);resize:vertical}
+textarea::placeholder{color:var(--gray-lt)}
+
+.dropzone{border:1.5px dashed #cbd5e1;border-radius:var(--r-md);padding:30px 20px;text-align:center;background:var(--bg-soft);cursor:pointer;position:relative;transition:background .15s,border-color .15s}
+.dropzone:hover,.dropzone.over{background:#eff6ff;border-color:var(--blue)}
+.dropzone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.dz-icon{font-size:26px;margin-bottom:8px}
+.dz-main{font-weight:600;font-size:14.5px;margin-bottom:3px}
+.dz-sub{font-size:12.5px;color:var(--gray-lt);margin-bottom:14px}
+.btn-browse{background:var(--blue);color:#fff;padding:9px 18px;border-radius:999px;font-weight:600;font-size:13px;position:relative;z-index:2}
+.preview-row{display:none;align-items:center;gap:12px;margin-top:12px;background:var(--bg-soft);border-radius:12px;padding:10px 14px}
+.prev-thumb{width:50px;height:50px;border-radius:9px;object-fit:cover}
+.prev-info{flex:1;text-align:left}
+.prev-name{font-size:13px;font-weight:600}
+.prev-size{font-size:11.5px;color:var(--gray)}
+.prev-rm{width:26px;height:26px;border-radius:50%;background:#fee2e2;color:#dc2626;font-size:12px}
+
+.btn-analyze{width:100%;padding:16px;border-radius:var(--r-md);background:linear-gradient(90deg,var(--teal),var(--teal-lt));color:#fff;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 8px 24px rgba(13,148,136,.3);transition:opacity .15s,transform .15s}
+.btn-analyze:disabled{opacity:.4;cursor:not-allowed}
+.btn-analyze:active:not(:disabled){transform:scale(.98)}
+.spin{width:15px;height:15px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
+.btn-analyze.loading .spin{display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err{font-size:12.5px;color:#dc2626;text-align:center;margin-top:10px}
+
+.results-box{margin-top:26px;padding-top:26px;border-top:1px solid var(--border);display:none}
+.results-box.visible{display:block}
+.res-disease{font-size:21px;font-weight:800;margin-bottom:4px}
+.res-badge{display:inline-block;font-size:11px;font-weight:700;color:var(--blue);background:#eff6ff;border-radius:999px;padding:3px 11px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:16px}
+.conf-row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--gray);margin-bottom:6px}
+.conf-bg{height:7px;background:var(--bg-soft);border-radius:99px;overflow:hidden;margin-bottom:20px}
+.conf-fill{height:100%;border-radius:99px;width:0;background:linear-gradient(90deg,var(--blue),var(--teal-lt));transition:width .7s ease}
+.remedy-box{background:var(--bg-soft);border-radius:var(--r-md);padding:16px;font-size:13.5px;line-height:1.7;white-space:pre-line;margin-bottom:14px}
+.disclaimer{font-size:12px;color:var(--gray);text-align:center;margin-bottom:16px}
+.btn-reset{width:100%;background:#fff;border:1px solid var(--border);border-radius:var(--r-md);padding:12px;font-weight:600;font-size:13.5px}
+.btn-reset:hover{background:var(--bg-soft)}
+
+.steps{display:flex;gap:24px;justify-content:center;flex-wrap:wrap;max-width:900px;margin:0 auto}
+.step{flex:1;min-width:220px;max-width:260px;text-align:center}
+.step-num{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--teal-lt));color:#fff;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.step h3{font-size:15.5px;font-weight:700;margin-bottom:6px}
+.step p{font-size:13.5px;color:var(--gray)}
+
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;max-width:960px;margin:0 auto}
+@media(max-width:800px){.feat-grid{grid-template-columns:1fr}}
+.feat-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:26px;box-shadow:var(--shadow)}
+.feat-icon{width:44px;height:44px;border-radius:12px;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:16px}
+.feat-card h3{font-size:16px;font-weight:700;margin-bottom:8px}
+.feat-card p{font-size:13.5px;color:var(--gray);line-height:1.6}
+
+.specialist-section{background:var(--bg-soft)}
+.spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:820px;margin:0 auto}
+@media(max-width:700px){.spec-grid{grid-template-columns:1fr}}
+.spec-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:24px}
+.spec-card h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-card ul{list-style:none}
+.spec-card li{font-size:13.5px;color:var(--gray);padding:6px 0 6px 20px;position:relative}
+.spec-card li::before{content:'•';position:absolute;left:4px;color:var(--teal)}
+
+footer{text-align:center;padding:36px 24px;border-top:1px solid var(--border)}
+footer p{font-size:12.5px;color:var(--gray-lt);max-width:480px;margin:0 auto 8px;line-height:1.6}
+footer .copy{font-size:12px;color:#cbd5e1;margin-top:12px}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="logo"><div class="logo-mark"></div>Ski<span class="accent">Bot</span></div>
+    <div class="nav-links">
+      <a href="#top">Home</a><a href="#tool">Try it</a><a href="#how">How it works</a><a href="#specialist">When to see a doctor</a>
+    </div>
+    <a href="#tool" class="nav-cta">Get Started</a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="eyebrow"><span class="dot"></span>AI Health Companion</div>
+  <h1>Instant AI screening<br>for <span class="grad">skin & eye</span> concerns</h1>
+  <p>Describe what you're noticing, upload a photo, and get an AI-powered read in seconds — plus guidance on when to see a specialist.</p>
+  <div class="hero-actions">
+    <a href="#tool" class="btn btn-primary" onclick="selectModAndScroll('skin')">🩹 Start Skin Check</a>
+    <a href="#tool" class="btn btn-outline" onclick="selectModAndScroll('eye')">👁 Start Eye Check</a>
+  </div>
+</header>
+
+<section class="section" id="tool">
+  <div class="tool-card">
+    <div class="tool-header">
+      <h2>Talk to Ski Bot</h2>
+      <p>Describe your symptoms, then upload a photo for analysis</p>
+    </div>
+    <div class="tool-body">
+
+      <div class="module-toggle">
+        <button class="tbtn active" id="skinTab" onclick="setMod('skin')">🩹 Skin</button>
+        <button class="tbtn" id="eyeTab" onclick="setMod('eye')">👁 Eye</button>
+      </div>
+
+      <div class="block">
+        <label class="field-label">Describe your symptoms</label>
+        <div class="voice-row">
+          <button class="mic-btn" id="micBtn"><span class="mic-pulse"></span>🎤</button>
+          <span class="mic-status" id="micStatus">Tap to speak, or type below</span>
+        </div>
+        <textarea id="symptomText" placeholder="e.g. Redness and itching on my forearm for the past 3 days..."></textarea>
+      </div>
+
+      <div class="block">
+        <label class="field-label" id="uploadLabel">Upload a skin photo</label>
+        <div class="dropzone" id="dz">
+          <input type="file" id="fi" accept="image/jpeg,image/png,image/jpg"/>
+          <div id="dzC">
+            <div class="dz-icon">📷</div>
+            <div class="dz-main" id="dzMain">Click or drag your photo here</div>
+            <div class="dz-sub">JPG, PNG, JPEG supported</div>
+            <button type="button" class="btn-browse" onclick="document.getElementById('fi').click()">Browse files</button>
+          </div>
+        </div>
+        <div class="preview-row" id="pr">
+          <img class="prev-thumb" id="pt" alt="preview"/>
+          <div class="prev-info"><div class="prev-name" id="pn"></div><div class="prev-size" id="ps"></div></div>
+          <button class="prev-rm" id="rm" type="button">✕</button>
+        </div>
+      </div>
+
+      <button class="btn-analyze" id="ab" disabled>
+        <span class="spin"></span><span id="al">✨ Analyze with Ski Bot</span>
+      </button>
+      <div class="err" id="em" style="display:none"></div>
+
+      <div class="results-box" id="rb">
+        <div class="res-disease" id="rd">—</div>
+        <div class="res-badge" id="rbadge">Result</div>
+        <div class="conf-row"><span>Confidence</span><span id="cl">0%</span></div>
+        <div class="conf-bg"><div class="conf-fill" id="cf"></div></div>
+        <div class="remedy-box" id="rem"></div>
+        <div class="disclaimer" id="dis"></div>
+        <button class="btn-reset" id="resetB" type="button">Analyze another photo</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="how" style="background:var(--bg-soft)">
+  <div class="section-label">How it works</div>
+  <div class="section-title">Three steps to an instant read</div>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><h3>Describe symptoms</h3><p>Use your voice or type what you're noticing — duration, itching, pain, changes.</p></div>
+    <div class="step"><div class="step-num">2</div><h3>Upload a photo</h3><p>Add a clear photo of the skin or eye concern for the AI to analyze.</p></div>
+    <div class="step"><div class="step-num">3</div><h3>Get instant guidance</h3><p>See a likely condition, confidence score, and general care guidance.</p></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-label">What you'll get</div>
+  <div class="section-title">Built for clarity, not confusion</div>
+  <div class="feat-grid">
+    <div class="feat-card"><div class="feat-icon">⚡</div><h3>Instant Analysis</h3><p>Trained AI models screen your photo across dozens of skin and eye conditions in seconds.</p></div>
+    <div class="feat-card"><div class="feat-icon">🎙️</div><h3>Voice-Guided Input</h3><p>Just speak your symptoms naturally — no forms, no dropdowns, no friction.</p></div>
+    <div class="feat-card"><div class="feat-icon">📋</div><h3>Clear Next Steps</h3><p>Every result includes plain-language guidance and a reminder on when to see a specialist.</p></div>
+  </div>
+</section>
+
+<section class="section specialist-section" id="specialist">
+  <div class="section-label">Know your limits</div>
+  <div class="section-title">When to see a specialist</div>
+  <div class="section-sub">Ski Bot is a screening aid, not a diagnosis. Reach out to a professional if you notice any of the following.</div>
+  <div class="spec-grid">
+    <div class="spec-card">
+      <h3>🩹 See a dermatologist if:</h3>
+      <ul>
+        <li>A mole is rapidly changing shape or color</li>
+        <li>A rash persists despite gentle care</li>
+        <li>You notice signs of infection or spreading</li>
+        <li>You have severe or worsening pain</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h3>👁 See an ophthalmologist if:</h3>
+      <ul>
+        <li>Sudden vision changes or blurriness</li>
+        <li>Eye pain, redness, or discharge</li>
+        <li>Halos around lights or eye pressure</li>
+        <li>Any trauma or injury to the eye</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>Ski Bot is an AI-assisted screening tool for educational purposes and does not replace professional medical diagnosis or treatment. Always consult a licensed dermatologist or ophthalmologist for any health concern.</p>
+  <p class="copy">© 2026 Ski Bot</p>
+</footer>
+
+<script>
+const API="";
+let mod="skin",imgFile=null,mr=null,chunks=[],isRec=false,stream=null;
+
+const skinTab=document.getElementById('skinTab'),eyeTab=document.getElementById('eyeTab');
+function setMod(m){
+  mod=m;
+  skinTab.classList.toggle('active',m==='skin');
+  eyeTab.classList.toggle('active',m==='eye');
+  document.getElementById('uploadLabel').textContent=m==='skin'?'Upload a skin photo':'Upload an eye photo';
+  document.getElementById('dzMain').textContent=m==='skin'?'Click or drag a skin photo here':'Click or drag an eye photo here';
+}
+function selectModAndScroll(m){ setMod(m); }
+
+const micBtn=document.getElementById('micBtn'),micStatus=document.getElementById('micStatus'),symptomText=document.getElementById('symptomText');
+micBtn.addEventListener('click',async()=>{
+  if(!isRec){
+    try{
+      stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      mr=new MediaRecorder(stream);chunks=[];
+      mr.ondataavailable=e=>chunks.push(e.data);
+      mr.onstop=handleStop;
+      mr.start();
+      isRec=true;micBtn.classList.add('rec');
+      micStatus.textContent='Listening... tap to stop';micStatus.classList.add('live');
+    }catch{micStatus.textContent='Microphone access denied.';}
+  }else{
+    mr.stop();stream.getTracks().forEach(t=>t.stop());
+    isRec=false;micBtn.classList.remove('rec');
+    micStatus.textContent='Transcribing...';micStatus.classList.remove('live');
+  }
+});
+async function handleStop(){
+  const blob=new Blob(chunks,{type:'audio/webm'});
+  const fd=new FormData();fd.append('audio',blob,'voice.webm');
+  try{
+    const r=await fetch(`${API}/transcribe`,{method:'POST',body:fd});
+    const d=await r.json();
+    const text=d.text||'';
+    symptomText.value=symptomText.value?symptomText.value+' '+text:text;
+    micStatus.textContent=text?'Voice captured — tap to add more':'Tap to speak, or type below';
+  }catch{micStatus.textContent="Can't reach server — check backend is running.";}
+}
+
+const fi=document.getElementById('fi'),dz=document.getElementById('dz'),dzC=document.getElementById('dzC'),pr=document.getElementById('pr'),pt=document.getElementById('pt'),pn=document.getElementById('pn'),ps=document.getElementById('ps'),rm=document.getElementById('rm'),ab=document.getElementById('ab');
+fi.addEventListener('change',()=>loadFile(fi.files[0]));
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))loadFile(f)});
+function loadFile(f){
+  if(!f)return;imgFile=f;
+  pt.src=URL.createObjectURL(f);pn.textContent=f.name;ps.textContent=(f.size/1024).toFixed(0)+' KB';
+  dzC.style.display='none';pr.style.display='flex';ab.disabled=false;
+}
+rm.addEventListener('click',()=>{imgFile=null;fi.value='';dzC.style.display='block';pr.style.display='none';ab.disabled=true});
+
+const em=document.getElementById('em'),al=document.getElementById('al'),rb=document.getElementById('rb');
+ab.addEventListener('click',async()=>{
+  em.style.display='none';
+  if(!imgFile){em.textContent='Please upload a photo first.';em.style.display='block';return}
+  ab.disabled=true;ab.classList.add('loading');al.textContent='Analyzing...';
+  const fd=new FormData();fd.append('image',imgFile);fd.append('symptoms',symptomText.value.trim());
+  const ep=mod==='skin'?'/predict':'/predict-eye';
+  try{
+    const r=await fetch(`${API}${ep}`,{method:'POST',body:fd});
+    const d=await r.json();
+    if(d.error)throw new Error(d.error);
+    document.getElementById('rd').textContent=d.disease;
+    document.getElementById('rbadge').textContent=mod==='skin'?'Skin Analysis':'Eye Analysis';
+    document.getElementById('cl').textContent=d.confidence+'%';
+    document.getElementById('cf').style.width=d.confidence+'%';
+    document.getElementById('rem').textContent=d.remedy;
+    document.getElementById('dis').textContent=d.disclaimer;
+    rb.classList.add('visible');
+    rb.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }catch(e){em.textContent='Analysis failed: '+e.message;em.style.display='block';}
+  ab.disabled=false;ab.classList.remove('loading');al.textContent='✨ Analyze with Ski Bot';
+});
+
+document.getElementById('resetB').addEventListener('click',()=>{
+  rm.click();symptomText.value='';rb.classList.remove('visible');em.style.display='none';
+  micStatus.textContent='Tap to speak, or type below';micStatus.classList.remove('live');
+  document.getElementById('tool').scrollIntoView({behavior:'smooth'});
+});
+</script>
+
+</body>
+</html>
