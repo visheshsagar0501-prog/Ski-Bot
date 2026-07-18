@@ -261,7 +261,7 @@ footer .copy{font-size:12px;color:#cbd5e1;margin-top:12px}
 
 <script>
 const API="";
-let mod="skin",imgFile=null,mr=null,chunks=[],isRec=false,stream=null;
+let mod="skin",imgFile=null,mr=null,chunks=[],isRec=false,stream=null,recMimeType="";
 
 const skinTab=document.getElementById('skinTab'),eyeTab=document.getElementById('eyeTab');
 function setMod(m){
@@ -278,7 +278,9 @@ micBtn.addEventListener('click',async()=>{
   if(!isRec){
     try{
       stream=await navigator.mediaDevices.getUserMedia({audio:true});
-      mr=new MediaRecorder(stream);chunks=[];
+      recMimeType = ['audio/webm','audio/mp4','audio/ogg'].find(t=>MediaRecorder.isTypeSupported(t)) || '';
+      mr = recMimeType ? new MediaRecorder(stream,{mimeType:recMimeType}) : new MediaRecorder(stream);
+      chunks=[];
       mr.ondataavailable=e=>chunks.push(e.data);
       mr.onstop=handleStop;
       mr.start();
@@ -292,8 +294,10 @@ micBtn.addEventListener('click',async()=>{
   }
 });
 async function handleStop(){
-  const blob=new Blob(chunks,{type:'audio/webm'});
-  const fd=new FormData();fd.append('audio',blob,'voice.webm');
+  const actualType = recMimeType || (mr && mr.mimeType) || 'audio/webm';
+  const blob=new Blob(chunks,{type:actualType});
+  const ext = actualType.includes('mp4') ? 'mp4' : actualType.includes('ogg') ? 'ogg' : 'webm';
+  const fd=new FormData();fd.append('audio',blob,`voice.${ext}`);
   try{
     const r=await fetch(`${API}/transcribe`,{method:'POST',body:fd});
     const d=await r.json();
