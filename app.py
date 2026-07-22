@@ -1,28 +1,3 @@
-"""
-=============================================================
-  FLASK BACKEND API — DermaBot
-  Skin Disease + Eye Disease Classifier
-  + Gemini-powered Remedies + Voice Transcription
-=============================================================
-
-ENDPOINTS:
-  GET  /health        — confirm both models loaded correctly
-  POST /predict       — skin disease prediction
-  POST /predict-eye   — eye disease prediction
-  POST /transcribe    — voice to text (used before analysis)
-
-INSTALL:
-  pip install flask flask-cors tensorflow numpy pillow requests
-
-SET YOUR GEMINI KEY (never hardcode it):
-  Mac/Linux : export GEMINI_API_KEY="your-key-here"
-  Windows   : $env:GEMINI_API_KEY="your-key-here"
-
-RUN:
-  python app.py
-=============================================================
-"""
-
 import os
 import io
 import base64
@@ -34,8 +9,6 @@ import tensorflow as tf
 from PIL import Image
 from pydub import AudioSegment
 import imageio_ffmpeg
-
-# pydub needs an ffmpeg binary — imageio_ffmpeg bundles one, no system install needed
 AudioSegment.converter = imageio_ffmpeg.get_ffmpeg_exe()
 
 
@@ -233,14 +206,11 @@ def get_remedy(disease_name, symptom_text="", specialist="dermatologist"):
     """
     prompt = f"""A medical image classification AI predicted the condition: "{disease_name}".
 The patient described their symptoms as: "{symptom_text or 'No additional description provided.'}"
-
 Provide:
 1. A brief, general explanation of this condition (2 sentences)
 2. 3-4 general self-care tips (no specific drug names or dosages)
 3. A clear reminder to see a licensed {specialist} for proper diagnosis and treatment
-
 Keep the tone calm and reassuring. Do not provide a definitive diagnosis or prescribe medication."""
-
     try:
         return call_gemini([{"text": prompt}])
     except Exception as e:
