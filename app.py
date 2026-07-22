@@ -1,6 +1,27 @@
-from dotenv import load_dotenv
-load_dotenv()
+"""
+=============================================================
+  FLASK BACKEND API — DermaBot
+  Skin Disease + Eye Disease Classifier
+  + Gemini-powered Remedies + Voice Transcription
+=============================================================
 
+ENDPOINTS:
+  GET  /health        — confirm both models loaded correctly
+  POST /predict       — skin disease prediction
+  POST /predict-eye   — eye disease prediction
+  POST /transcribe    — voice to text (used before analysis)
+
+INSTALL:
+  pip install flask flask-cors tensorflow numpy pillow requests
+
+SET YOUR GEMINI KEY (never hardcode it):
+  Mac/Linux : export GEMINI_API_KEY="your-key-here"
+  Windows   : $env:GEMINI_API_KEY="your-key-here"
+
+RUN:
+  python app.py
+=============================================================
+"""
 
 import os
 import io
@@ -11,9 +32,16 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import tensorflow as tf
 from PIL import Image
+from pydub import AudioSegment
+import imageio_ffmpeg
+
+# pydub needs an ffmpeg binary — imageio_ffmpeg bundles one, no system install needed
+AudioSegment.converter = imageio_ffmpeg.get_ffmpeg_exe()
 
 
+# ─────────────────────────────────────────────
 # SKIN MODEL CONFIGURATION
+# ─────────────────────────────────────────────
 
 SKIN_MODEL_PATH = "skin_diseases_final.keras"
 
@@ -46,7 +74,9 @@ SKIN_CLASS_NAMES = [
 SKIN_IMG_SIZE = (160, 160)
 
 
+# ─────────────────────────────────────────────
 # EYE MODEL CONFIGURATION
+# ─────────────────────────────────────────────
 
 EYE_MODEL_PATH = "eye_disease_model_final.keras"
 
@@ -56,8 +86,10 @@ EYE_CLASS_NAMES = ["cataract", "diabetic_retinopathy", "glaucoma", "normal"]
 EYE_IMG_SIZE = (160, 160)
 
 
+# ─────────────────────────────────────────────
 # GEMINI CONFIGURATION
 # Read from environment variable — never hardcode your key
+# ─────────────────────────────────────────────
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
@@ -71,13 +103,17 @@ GEMINI_MODEL = "gemini-2.5-flash"
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
 
 
+# ─────────────────────────────────────────────
 # INITIALIZE FLASK APP
+# ─────────────────────────────────────────────
 
 app = Flask(__name__)
 CORS(app)
 
 
+# ─────────────────────────────────────────────
 # LOAD BOTH MODELS AT STARTUP
+# ─────────────────────────────────────────────
 
 print("📦 Loading skin model...")
 if not os.path.exists(SKIN_MODEL_PATH):
@@ -94,40 +130,88 @@ print("✅ Eye model loaded.")
 print("\n🚀 DermaBot backend is ready — both models online.\n")
 
 
+# ─────────────────────────────────────────────
 # HELPER: PREPROCESS IMAGE
+# ─────────────────────────────────────────────
 
 def preprocess_image(image_bytes, img_size):
-    
+    """
+    Resizes and converts image bytes into the numpy array
+    shape each model expects: (1, H, W, 3)
+    img_size must match what that specific model was trained with.
+    """
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     img = img.resize(img_size)
     img_array = np.array(img, dtype=np.float32)
     img_array = np.expand_dims(img_array, axis=0)
     return img_array
 
+
+# ─────────────────────────────────────────────
 # HELPER: CALL GEMINI
+# ─────────────────────────────────────────────
 
 def call_gemini(parts):
-    
+    """
+    Sends a multimodal request to Gemini.
+    'parts' can contain text and/or inline base64 media.
+    Returns Gemini's text response.
+    """
     response = requests.post(
         GEMINI_URL,
         params={"key": GEMINI_API_KEY},
         json={"contents": [{"parts": parts}]},
         timeout=30
     )
-    response.raise_for_status()
+    if not response.ok:
+        # Raise a clean error WITHOUT the URL (which contains the API key)
+        raise RuntimeError(f"Gemini API error {response.status_code}: {response.text[:300]}")
     data = response.json()
     return data["candidates"][0]["content"]["parts"][0]["text"].strip()
 
 
+# ─────────────────────────────────────────────
 # HELPER: TRANSCRIBE VOICE AUDIO
+# ─────────────────────────────────────────────
+
+def convert_to_wav(audio_bytes, mime_type):
+    """
+    Browsers record audio as webm/mp4/ogg depending on the device —
+    but Gemini only officially supports WAV, MP3, AIFF, AAC, OGG, and FLAC.
+    Sending webm directly causes a 400 error from Gemini's API.
+    This converts whatever the browser sent into WAV, which Gemini always accepts.
+    """
+    if "mp4" in mime_type:
+        src_format = "mp4"
+    elif "ogg" in mime_type:
+        src_format = "ogg"
+    elif "wav" in mime_type:
+        src_format = "wav"
+    else:
+        src_format = "webm"
+
+    audio = AudioSegment.from_file(io.BytesIO(audio_bytes), format=src_format)
+    wav_buffer = io.BytesIO()
+    audio.export(wav_buffer, format="wav")
+    return wav_buffer.getvalue()
+
 
 def transcribe_audio(audio_bytes, mime_type="audio/webm"):
-    
-    audio_base64 = base64.b64encode(audio_bytes).decode("utf-8")
+    """
+    Converts the recorded audio to WAV, then sends it to Gemini for transcription.
+    Returns the transcribed text string, or "" on failure.
+    """
+    try:
+        wav_bytes = convert_to_wav(audio_bytes, mime_type)
+    except Exception as e:
+        print(f"⚠️ Audio conversion failed: {e}")
+        return ""
+
+    audio_base64 = base64.b64encode(wav_bytes).decode("utf-8")
     parts = [
         {"text": "Transcribe exactly what the person says in this audio "
                  "about their symptoms. Return ONLY the transcribed text, nothing else."},
-        {"inline_data": {"mime_type": mime_type, "data": audio_base64}}
+        {"inline_data": {"mime_type": "audio/wav", "data": audio_base64}}
     ]
     try:
         return call_gemini(parts)
@@ -136,11 +220,17 @@ def transcribe_audio(audio_bytes, mime_type="audio/webm"):
         return ""
 
 
+# ─────────────────────────────────────────────
 # HELPER: GET REMEDY FROM GEMINI
 # Works for both skin and eye conditions
+# ─────────────────────────────────────────────
 
 def get_remedy(disease_name, symptom_text="", specialist="dermatologist"):
-    
+    """
+    Asks Gemini for calm, general care guidance.
+    'specialist' changes the recommendation at the end
+    (e.g. 'dermatologist' for skin, 'ophthalmologist' for eyes).
+    """
     prompt = f"""A medical image classification AI predicted the condition: "{disease_name}".
 The patient described their symptoms as: "{symptom_text or 'No additional description provided.'}"
 
@@ -160,12 +250,19 @@ Keep the tone calm and reassuring. Do not provide a definitive diagnosis or pres
             f"Please consult a {specialist} for proper care."
         )
 
-# ROUTE: HEALTH CHECK
+
+# ─────────────────────────────────────────────
+# ROUTE: SERVE FRONTEND
+# ─────────────────────────────────────────────
 
 @app.route("/")
 def serve_frontend():
     return send_from_directory(".", "skibot.html")
 
+
+# ─────────────────────────────────────────────
+# ROUTE: HEALTH CHECK
+# ─────────────────────────────────────────────
 
 @app.route("/health", methods=["GET"])
 def health():
@@ -176,7 +273,9 @@ def health():
     })
 
 
+# ─────────────────────────────────────────────
 # ROUTE: TRANSCRIBE (voice → text, live, before analysis)
+# ─────────────────────────────────────────────
 
 @app.route("/transcribe", methods=["POST"])
 def transcribe():
@@ -190,10 +289,12 @@ def transcribe():
     return jsonify({"text": text})
 
 
+# ─────────────────────────────────────────────
 # ROUTE: PREDICT SKIN
 # POST /predict
 # Form fields: image (required), audio (optional), symptoms (optional)
 # Returns: disease, confidence, symptom_description, remedy, disclaimer
+# ─────────────────────────────────────────────
 
 @app.route("/predict", methods=["POST"])
 def predict():
@@ -232,6 +333,13 @@ def predict():
         return jsonify({"error": f"Skin prediction failed: {str(e)}"}), 500
 
 
+# ─────────────────────────────────────────────
+# ROUTE: PREDICT EYE
+# POST /predict-eye
+# Form fields: image (required), audio (optional), symptoms (optional)
+# Returns: disease, confidence, symptom_description, remedy, disclaimer
+# ─────────────────────────────────────────────
+
 @app.route("/predict-eye", methods=["POST"])
 def predict_eye():
     if "image" not in request.files:
@@ -268,7 +376,11 @@ def predict_eye():
     except Exception as e:
         return jsonify({"error": f"Eye prediction failed: {str(e)}"}), 500
 
+
+# ─────────────────────────────────────────────
 # RUN THE SERVER
+# ─────────────────────────────────────────────
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=False, host="0.0.0.0", port=port)

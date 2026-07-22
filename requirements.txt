@@ -6,3 +6,5 @@ pillow
 requests
 python-dotenv
 gunicorn
+pydub
+imageio-ffmpeg
