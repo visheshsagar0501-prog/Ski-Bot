@@ -1,28 +1,3 @@
-"""
-=============================================================
-  FLASK BACKEND API — DermaBot
-  Skin Disease + Eye Disease Classifier
-  + Gemini-powered Remedies + Voice Transcription
-=============================================================
-
-ENDPOINTS:
-  GET  /health        — confirm both models loaded correctly
-  POST /predict       — skin disease prediction
-  POST /predict-eye   — eye disease prediction
-  POST /transcribe    — voice to text (used before analysis)
-
-INSTALL:
-  pip install flask flask-cors tensorflow numpy pillow requests
-
-SET YOUR GEMINI KEY (never hardcode it):
-  Mac/Linux : export GEMINI_API_KEY="your-key-here"
-  Windows   : $env:GEMINI_API_KEY="your-key-here"
-
-RUN:
-  python app.py
-=============================================================
-"""
-
 import os
 import io
 import base64
@@ -127,6 +102,11 @@ if not os.path.exists(EYE_MODEL_PATH):
 eye_model = tf.keras.models.load_model(EYE_MODEL_PATH)
 print("✅ Eye model loaded.")
 
+print("🔥 Warming up models (avoids a slow first request)...")
+skin_model.predict(np.zeros((1,) + SKIN_IMG_SIZE + (3,), dtype=np.float32), verbose=0)
+eye_model.predict(np.zeros((1,) + EYE_IMG_SIZE + (3,), dtype=np.float32), verbose=0)
+print("✅ Models warmed up.")
+
 print("\n🚀 DermaBot backend is ready — both models online.\n")
 
 
@@ -135,11 +115,7 @@ print("\n🚀 DermaBot backend is ready — both models online.\n")
 # ─────────────────────────────────────────────
 
 def preprocess_image(image_bytes, img_size):
-    """
-    Resizes and converts image bytes into the numpy array
-    shape each model expects: (1, H, W, 3)
-    img_size must match what that specific model was trained with.
-    """
+    
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     img = img.resize(img_size)
     img_array = np.array(img, dtype=np.float32)
@@ -151,16 +127,16 @@ def preprocess_image(image_bytes, img_size):
 # HELPER: CALL GEMINI
 # ─────────────────────────────────────────────
 
-def call_gemini(parts):
-    """
-    Sends a multimodal request to Gemini.
-    'parts' can contain text and/or inline base64 media.
-    Returns Gemini's text response.
-    """
+def call_gemini(parts, max_output_tokens=None):
+  
+    body = {"contents": [{"parts": parts}]}
+    if max_output_tokens:
+        body["generationConfig"] = {"maxOutputTokens": max_output_tokens}
+
     response = requests.post(
         GEMINI_URL,
         params={"key": GEMINI_API_KEY},
-        json={"contents": [{"parts": parts}]},
+        json=body,
         timeout=30
     )
     if not response.ok:
@@ -175,12 +151,7 @@ def call_gemini(parts):
 # ─────────────────────────────────────────────
 
 def convert_to_wav(audio_bytes, mime_type):
-    """
-    Browsers record audio as webm/mp4/ogg depending on the device —
-    but Gemini only officially supports WAV, MP3, AIFF, AAC, OGG, and FLAC.
-    Sending webm directly causes a 400 error from Gemini's API.
-    This converts whatever the browser sent into WAV, which Gemini always accepts.
-    """
+    
     if "mp4" in mime_type:
         src_format = "mp4"
     elif "ogg" in mime_type:
@@ -197,10 +168,7 @@ def convert_to_wav(audio_bytes, mime_type):
 
 
 def transcribe_audio(audio_bytes, mime_type="audio/webm"):
-    """
-    Converts the recorded audio to WAV, then sends it to Gemini for transcription.
-    Returns the transcribed text string, or "" on failure.
-    """
+   
     try:
         wav_bytes = convert_to_wav(audio_bytes, mime_type)
     except Exception as e:
@@ -226,11 +194,6 @@ def transcribe_audio(audio_bytes, mime_type="audio/webm"):
 # ─────────────────────────────────────────────
 
 def get_remedy(disease_name, symptom_text="", specialist="dermatologist"):
-    """
-    Asks Gemini for calm, general care guidance.
-    'specialist' changes the recommendation at the end
-    (e.g. 'dermatologist' for skin, 'ophthalmologist' for eyes).
-    """
     prompt = f"""A medical image classification AI predicted the condition: "{disease_name}".
 The patient described their symptoms as: "{symptom_text or 'No additional description provided.'}"
 
@@ -239,10 +202,11 @@ Provide:
 2. 3-4 general self-care tips (no specific drug names or dosages)
 3. A clear reminder to see a licensed {specialist} for proper diagnosis and treatment
 
-Keep the tone calm and reassuring. Do not provide a definitive diagnosis or prescribe medication."""
+Keep the tone calm and reassuring. Do not provide a definitive diagnosis or prescribe medication.
+Keep your entire response under 130 words — be concise."""
 
     try:
-        return call_gemini([{"text": prompt}])
+        return call_gemini([{"text": prompt}], max_output_tokens=350)
     except Exception as e:
         print(f"⚠️ Gemini remedy call failed: {e}")
         return (
